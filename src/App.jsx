@@ -3,7 +3,6 @@ import { createClient } from "@supabase/supabase-js";
 import "./App.css";
 
 // ─── SUPABASE CONFIG ──────────────────────────────────────────────────────────
-// Replace these two values with your own from supabase.com → Settings → API
 const SUPABASE_URL  = import.meta.env.VITE_SUPABASE_URL;
 const SUPABASE_ANON = import.meta.env.VITE_SUPABASE_ANON;
 
@@ -135,6 +134,43 @@ function Stat({ label, animateTo }) {
         <AnimatedCounter to={animateTo} />
       </div>
       <div className="hero-stat__label">{label}</div>
+    </div>
+  );
+}
+
+// ─── LOGIN MODAL ──────────────────────────────────────────────────────────────
+// Lifted OUTSIDE App so it never remounts on parent re-renders (fixes flicker)
+function LoginModal({ loginPassword, setLoginPassword, loginError, onLogin, onClose }) {
+  return (
+    <div className="modal-backdrop">
+      <div className="modal">
+        <div className="modal__icon-wrap" aria-hidden="true">🔐</div>
+        <h2 className="modal__title">Admin Login</h2>
+        <p className="modal__subtitle">Enter your password to access the admin panel.</p>
+        <div className="modal__form">
+          <div className="modal__input-wrap">
+            <input
+              type="password"
+              className="modal__input"
+              placeholder="Admin password"
+              value={loginPassword}
+              onChange={(e) => setLoginPassword(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && onLogin()}
+              autoFocus
+            />
+            <span className="modal__input-icon">🔑</span>
+          </div>
+          {loginError && <div className="modal__error">{loginError}</div>}
+          <div className="modal__actions">
+            <button type="button" className="button button--primary" onClick={onLogin}>
+              Login
+            </button>
+            <button type="button" className="button button--ghost" onClick={onClose}>
+              Cancel
+            </button>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
@@ -431,8 +467,7 @@ export default function App() {
     setTimeout(() => setFormSuccess(""), 3000);
   }
 
-  function handleLogin(e) {
-    e.preventDefault();
+  function handleLogin() {
     setLoginError("");
     if (loginPassword === ADMIN_PASSWORD) {
       localStorage.setItem(ADMIN_KEY, "true");
@@ -468,35 +503,20 @@ export default function App() {
     setFormError("");
   }
 
-  // ── Login modal ────────────────────────────────────────────────────────────
-  function LoginModal() {
-    return (
-      <div className="modal-backdrop">
-        <div className="modal">
-          <h2 className="modal__title">Admin Login</h2>
-          <form onSubmit={handleLogin} className="modal__form">
-            <input type="password" className="modal__input"
-              placeholder="Enter admin password"
-              value={loginPassword}
-              onChange={(e) => setLoginPassword(e.target.value)}
-              autoFocus />
-            {loginError && <div className="modal__error">{loginError}</div>}
-            <div className="modal__actions">
-              <button type="submit" className="button button--primary">Login</button>
-              <button type="button" className="button button--ghost"
-                onClick={() => setShowLoginModal(false)}>Cancel</button>
-            </div>
-          </form>
-        </div>
-      </div>
-    );
-  }
-
   // ── Render ─────────────────────────────────────────────────────────────────
   return (
     <>
       <div className="app-shell">
-        {showLoginModal && !isAdmin && <LoginModal />}
+        {/* Modal rendered at top level — stable, no re-mount flicker */}
+        {showLoginModal && !isAdmin && (
+          <LoginModal
+            loginPassword={loginPassword}
+            setLoginPassword={setLoginPassword}
+            loginError={loginError}
+            onLogin={handleLogin}
+            onClose={() => { setShowLoginModal(false); setLoginError(""); setLoginPassword(""); }}
+          />
+        )}
 
         <div className="app-noise" aria-hidden="true" />
         <div className="app-orbs" aria-hidden="true">
@@ -527,9 +547,12 @@ export default function App() {
 
           {/* ── HERO ──────────────────────────────────────────────────────── */}
           <section className="hero">
+            {/* CHANGE 1: Added "Batch 2025-28" to the badge */}
             <div className="hero-badge">
               <span className="hero-badge__dot" />
               SE Mech · NMIET
+              <span className="hero-badge__divider" aria-hidden="true">|</span>
+              <span className="hero-badge__batch">Batch 2025–28</span>
             </div>
             <h1 className="hero-title">
               Mech-AIML <span>Hub</span>
